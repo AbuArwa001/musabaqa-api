@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @font-face {{
+      font-family: 'Amiri';
+      src: local('Amiri');
+    }}
+    body {{
+      font-family: 'Amiri', 'Noto Naskh Arabic', serif;
+      direction: rtl;
+      unicode-bidi: embed;
+      text-align: center;
+      margin: 60px;
+      color: #1a1a2e;
+    }}
+    .border {{ border: 6px double #b8860b; padding: 40px; }}
+    .logo {{ font-size: 24px; font-weight: bold; color: #b8860b; }}
+    h1 {{ font-size: 32px; margin-top: 30px; }}
+    .student-name {{ font-size: 28px; font-weight: bold; color: #006400; margin: 20px 0; }}
+    .details {{ font-size: 18px; margin: 10px 0; }}
+    .score {{ font-size: 22px; font-weight: bold; color: #8b0000; }}
+    .footer {{ margin-top: 40px; font-size: 14px; color: #666; }}
+  </style>
+</head>
+<body>
+  <div class="border">
+    <div class="logo">🕌 جامع ناروبي</div>
+    <h1>شهادة التفوق والإتقان</h1>
+    <p>يُشهد بأن الطالب/ة</p>
+    <div class="student-name">{student_name}</div>
+    <p class="details">قد حصل على <strong>المرتبة {rank}</strong> في فئة</p>
+    <p class="details"><strong>{category_name}</strong></p>
+    <p class="details">في مسابقة حفظ القرآن الكريم</p>
+    <p class="details">الموسم: <strong>{season}</strong></p>
+    <p class="score">النتيجة الكلية: {final_score}</p>
+    <div class="footer">
+      جامع ناروبي — لجنة المسابقة<br>
+      صدرت بكل فخر وإخلاص.
+    </div>
+  </div>
+</body>
+</html>

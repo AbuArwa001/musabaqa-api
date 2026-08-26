@@ -1,0 +1,5 @@
+.env
+__pycache__
+.venv
+musabaqa_api.egg-info
+.pytest_cache

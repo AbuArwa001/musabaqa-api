@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Noto+Serif&display=swap');
+    body {{
+      font-family: 'Noto Serif', serif;
+      direction: ltr;
+      text-align: center;
+      margin: 60px;
+      color: #1a1a2e;
+    }}
+    .border {{ border: 6px double #b8860b; padding: 40px; }}
+    .logo {{ font-size: 24px; font-weight: bold; color: #b8860b; }}
+    h1 {{ font-size: 32px; margin-top: 30px; }}
+    .student-name {{ font-size: 28px; font-weight: bold; color: #006400; margin: 20px 0; }}
+    .details {{ font-size: 18px; margin: 10px 0; }}
+    .score {{ font-size: 22px; font-weight: bold; color: #8b0000; }}
+    .footer {{ margin-top: 40px; font-size: 14px; color: #666; }}
+  </style>
+</head>
+<body>
+  <div class="border">
+    <div class="logo">🕌 Jamia Mosque Nairobi</div>
+    <h1>CERTIFICATE OF EXCELLENCE</h1>
+    <p>This is to certify that</p>
+    <div class="student-name">{student_name}</div>
+    <p class="details">has achieved <strong>Rank {rank}</strong> in the</p>
+    <p class="details"><strong>{category_name}</strong> category</p>
+    <p class="details">of the Quran Memorization Competition</p>
+    <p class="details">Season: <strong>{season}</strong></p>
+    <p class="score">Total Score: {final_score}</p>
+    <div class="footer">
+      Jamia Mosque Nairobi — Musabaqa Committee<br>
+      Issued with pride and sincerity.
+    </div>
+  </div>
+</body>
+</html>
