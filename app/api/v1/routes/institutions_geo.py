@@ -51,6 +51,19 @@ async def update_county(
     return c
 
 
+@router.delete("/counties/{county_id}", status_code=204)
+async def delete_county(
+    county_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_role(AdminRole.SUPERADMIN)),
+):
+    c = await db.get(County, county_id)
+    if not c:
+        raise HTTPException(404, "County not found")
+    await db.delete(c)
+    await db.commit()
+
+
 @router.get("/regions", response_model=list[RegionRead])
 async def list_regions(county_id: int | None = None, db: AsyncSession = Depends(get_db)):
     q = select(Region)
@@ -90,3 +103,17 @@ async def update_region(
     await db.refresh(r)
     await db.commit()
     return r
+
+
+@router.delete("/regions/{region_id}", status_code=204)
+async def delete_region(
+    region_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_role(AdminRole.SUPERADMIN)),
+):
+    r = await db.get(Region, region_id)
+    if not r:
+        raise HTTPException(404, "Region not found")
+    await db.delete(r)
+    await db.commit()
+
