@@ -1,4 +1,6 @@
 import os
+import re
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any
 from fastapi import APIRouter, Depends, Query, Request, UploadFile, File, Response, HTTPException, status
@@ -265,12 +267,16 @@ async def download_student_pdf(
     cat = await db.get(Category, student.category_id)
 
     pdf_bytes = generate_single_student_pdf(student, category=cat, institution=inst)
-    filename = f"REF-{student.id:05d}_{student.full_name.replace(' ', '_')}_Dossier.pdf"
+    safe_ascii_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", student.full_name or "").strip("_") or f"student_{student.id}"
+    fallback_filename = f"REF-{student.id:05d}_{safe_ascii_name}_Dossier.pdf"
+    encoded_filename = urllib.parse.quote(f"REF-{student.id:05d}_{student.full_name or 'student'}_Dossier.pdf")
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'inline; filename="{fallback_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        },
     )
 
 
