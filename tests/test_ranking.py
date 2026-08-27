@@ -95,8 +95,23 @@ async def _add_result(db, round_id, student, score):
 
 
 async def _make_student(db, institution_id, category_id, name, national_id, phone):
+    inst = await db.get(Institution, institution_id)
+    new_inst = Institution(
+        name=f"Inst for {name}",
+        type=inst.type if inst else InstitutionType.MADRASA,
+        contact_person=f"Contact {name}",
+        phone=f"+254{abs(hash(name)) % 100000000:08d}",
+        email=f"inst_{name.lower().replace(' ', '_')}@test.com",
+        password_hash=hash_password("x"),
+        region_id=inst.region_id if inst else None,
+        status=InstitutionStatus.APPROVED,
+        preferred_language=InstLang.EN,
+    )
+    db.add(new_inst)
+    await db.flush()
+
     s = Student(
-        institution_id=institution_id, category_id=category_id,
+        institution_id=new_inst.id, category_id=category_id,
         full_name=name, dob=date(2012, 1, 1), gender=Gender.MALE,
         national_id=national_id, guardian_phone=phone,
         review_status=StudentReviewStatus.APPROVED,
