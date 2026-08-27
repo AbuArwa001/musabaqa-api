@@ -112,14 +112,16 @@ def generate_single_student_pdf(student, category=None, institution=None) -> byt
     # Passport photo embedding
     photo_html = "<div style='color: #6B7280; font-size: 12px; margin-top: 50px;'>No photo attached</div>"
     photo_field = getattr(student, "photo", None)
+    photo_bytes = None
     if photo_field:
-        photo_bytes = get_s3_object_bytes(photo_field)
-        if not photo_bytes and os.path.exists(photo_field):
+        if os.path.exists(str(photo_field)):
             try:
                 with open(photo_field, "rb") as f:
                     photo_bytes = f.read()
             except Exception:
                 pass
+        if not photo_bytes:
+            photo_bytes = get_s3_object_bytes(photo_field)
 
         if photo_bytes:
             try:
