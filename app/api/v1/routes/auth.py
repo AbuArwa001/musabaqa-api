@@ -64,10 +64,9 @@ async def staff_login(
 @router.post("/staff/refresh", response_model=TokenResponse)
 async def staff_refresh(
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR, AdminRole.JUDGE)),
+    user: AdminUser = Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR, AdminRole.JUDGE)),
 ):
     """Refreshes staff session JWT and returns a newly extended token."""
-    user = await db.get(AdminUser, staff.user_id)
     if not user or not user.active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account inactive or not found")
 
