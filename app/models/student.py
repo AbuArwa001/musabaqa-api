@@ -46,6 +46,11 @@ class Student(SQLModel, table=True):
     # Cross-competition duplicate fields (unique enforced at CRUD layer + DB index)
     national_id: str = Field(index=True, unique=True)  # national_id / birth cert number
     guardian_phone: str = Field(index=True, unique=True)
+    alternative_phone: str | None = Field(default=None)
+    email: str | None = Field(default=None)
+    nationality: str | None = Field(default="Kenyan")
+    residence: str | None = Field(default=None)
+    county: str | None = Field(default=None)
 
     # S3 keys (private — accessed via presigned URLs only)
     photo: str | None = Field(default=None, description="S3 object key")

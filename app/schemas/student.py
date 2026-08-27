@@ -11,6 +11,11 @@ class StudentCreate(BaseModel):
     gender: Gender
     national_id: str
     guardian_phone: str
+    alternative_phone: str | None = None
+    email: str | None = None
+    nationality: str | None = "Kenyan"
+    residence: str | None = None
+    county: str | None = None
     photo: str | None = None
     id_document: str | None = None
     is_backup: bool = False
@@ -32,8 +37,13 @@ class StudentRead(BaseModel):
     gender: Gender
     national_id: str
     guardian_phone: str
-    photo: str | None          # returned as presigned URL by the API layer
-    id_document: str | None    # always presigned URL, never raw S3 key
+    alternative_phone: str | None = None
+    email: str | None = None
+    nationality: str | None = "Kenyan"
+    residence: str | None = None
+    county: str | None = None
+    photo: str | None = None          # returned as presigned URL by the API layer
+    id_document: str | None = None    # always presigned URL, never raw S3 key
     review_status: StudentReviewStatus
     rejection_reason: str | None
     is_backup: bool
@@ -51,6 +61,11 @@ class StudentUpdate(BaseModel):
     dob: date | None = None
     gender: Gender | None = None
     guardian_phone: str | None = None
+    alternative_phone: str | None = None
+    email: str | None = None
+    nationality: str | None = None
+    residence: str | None = None
+    county: str | None = None
     is_backup: bool | None = None
 
 

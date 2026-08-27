@@ -14,10 +14,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Use DATABASE_URL from environment if set
-import os
-db_url = os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
-config.set_main_option("sqlalchemy.url", db_url)
+# Use DATABASE_URL from settings
+from app.core.config import settings
+config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
 
 target_metadata = SQLModel.metadata
 

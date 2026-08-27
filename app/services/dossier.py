@@ -281,21 +281,21 @@ def generate_single_student_pdf(student, category=None, institution=None) -> byt
             <div class="grid-2">
               <div class="grid-cell">
                 <div class="field-label">Nationality</div>
-                <div class="field-val">{student.nationality or "Kenyan"}</div>
+                <div class="field-val">{getattr(student, 'nationality', None) or "Kenyan"}</div>
               </div>
               <div class="grid-cell">
                 <div class="field-label">National ID / Birth Cert</div>
-                <div class="field-val">{student.national_id or "—"}</div>
+                <div class="field-val">{getattr(student, 'national_id', None) or "—"}</div>
               </div>
             </div>
             <div class="grid-2">
               <div class="grid-cell">
                 <div class="field-label">Residence</div>
-                <div class="field-val">{student.residence or "Mombasa"}</div>
+                <div class="field-val">{getattr(student, 'residence', None) or getattr(student, 'county', None) or "Mombasa"}</div>
               </div>
               <div class="grid-cell">
                 <div class="field-label">Gender</div>
-                <div class="field-val">{student.gender or "Male"}</div>
+                <div class="field-val">{getattr(student, 'gender', None) or "Male"}</div>
               </div>
             </div>
           </div>
@@ -308,17 +308,17 @@ def generate_single_student_pdf(student, category=None, institution=None) -> byt
             <div class="grid-2">
               <div class="grid-cell">
                 <div class="field-label">Guardian Phone</div>
-                <div class="field-val">{student.guardian_phone or "—"}</div>
+                <div class="field-val">{getattr(student, 'guardian_phone', None) or "—"}</div>
               </div>
               <div class="grid-cell">
                 <div class="field-label">Alternative Phone</div>
-                <div class="field-val">{student.alternative_phone or "—"}</div>
+                <div class="field-val">{getattr(student, 'alternative_phone', None) or "—"}</div>
               </div>
             </div>
             <div class="grid-2">
               <div class="grid-cell">
                 <div class="field-label">Email Address</div>
-                <div class="field-val">{student.email or "—"}</div>
+                <div class="field-val">{getattr(student, 'email', None) or "—"}</div>
               </div>
               <div class="grid-cell">
                 <div class="field-label">Nominating Madrasa</div>
