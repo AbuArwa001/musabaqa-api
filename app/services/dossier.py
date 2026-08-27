@@ -511,13 +511,15 @@ def generate_single_student_pdf(student, category=None, institution=None) -> byt
     for page in p1_reader.pages:
         writer.add_page(page)
 
-    doc_bytes = get_s3_object_bytes(id_doc_field)
-    if not doc_bytes and os.path.exists(id_doc_field):
+    doc_bytes = None
+    if os.path.exists(str(id_doc_field)):
         try:
             with open(id_doc_field, "rb") as f:
                 doc_bytes = f.read()
         except Exception:
             pass
+    if not doc_bytes:
+        doc_bytes = get_s3_object_bytes(id_doc_field)
 
     if doc_bytes:
         try:
