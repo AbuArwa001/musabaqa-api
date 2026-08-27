@@ -12,6 +12,7 @@ from app.api.v1.routes.reports import router as reports_router
 from app.api.v1.routes.archive import router as archive_router
 from app.api.v1.routes.admin_users import router as admin_users_router
 from app.api.v1.routes.audit_logs import router as audit_logs_router
+from app.api.v1.routes.competitions import router as competitions_router
 
 v1_router = APIRouter(prefix="/api/v1")
 
@@ -27,3 +28,4 @@ v1_router.include_router(reports_router)
 v1_router.include_router(archive_router)
 v1_router.include_router(admin_users_router)
 v1_router.include_router(audit_logs_router)
+v1_router.include_router(competitions_router)

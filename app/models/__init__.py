@@ -14,9 +14,12 @@ from app.models.results import (
 from app.models.admin_user import AdminUser
 from app.models.audit import AuditLog, RegretEmailLog
 
+from app.models.competition import Competition, CompetitionStatus, HostOrganization
+
 __all__ = [
     "County", "Region", "Institution", "Category", "ScoringCriteria", "DeductionType",
     "Student", "Round", "RoundJudgeAssignment", "DeductionEvent",
     "RoundResult", "TieBreakVote", "CompetitionSeasonSettings", "RegionOverride",
     "AdminUser", "AuditLog", "RegretEmailLog",
+    "Competition", "CompetitionStatus", "HostOrganization",
 ]
