@@ -31,6 +31,7 @@ class Round(SQLModel, table=True):
         sa_column=Column(sa.Enum(RoundStatus), nullable=False, index=True),
     )
     scheduled_at: datetime = Field(sa_column=Column(sa.DateTime(timezone=True), nullable=False))
+    active_student_id: int | None = Field(default=None, foreign_key="students.id")
 
 
 class RoundJudgeAssignment(SQLModel, table=True):

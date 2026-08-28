@@ -66,6 +66,15 @@ class ConnectionManager:
         for ws in dead:
             self._admin.discard(ws)
 
+    async def broadcast_active_student(self, round_id: int, student_id: int | None) -> None:
+        """Notify all admin subscribers that the active student for a round has changed."""
+        payload = {
+            "type": "ACTIVE_STUDENT_CHANGED",
+            "round_id": round_id,
+            "student_id": student_id,
+        }
+        await self.broadcast_admin(payload)
+
 
 # Singleton — imported wherever needed
 ws_manager = ConnectionManager()

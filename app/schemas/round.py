@@ -15,6 +15,7 @@ class RoundRead(BaseModel):
     round_type: RoundType
     status: RoundStatus
     scheduled_at: datetime
+    active_student_id: int | None = None
     model_config = {"from_attributes": True}
 
 

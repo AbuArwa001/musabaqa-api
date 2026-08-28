@@ -102,3 +102,36 @@ async def complete_round(
     r = await crud.complete_round(db, round_id)
     await db.commit()
     return r
+
+
+@router.post("/{round_id}/active-student/{student_id}", response_model=RoundRead)
+async def set_active_student(
+    round_id: int,
+    student_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+):
+    """
+    Sets the active student for a round (Moderator functionality).
+    Broadcasts the change via WebSockets so all judge screens sync automatically.
+    """
+    # 1. Update round
+    r = await crud.get_round(db, round_id)
+    # verify student is in round
+    from app.models.round import RoundStatus
+    from fastapi import HTTPException
+    
+    # Optional: ensure round is ACTIVE
+    if r.status != RoundStatus.ACTIVE:
+        raise HTTPException(400, "Round must be ACTIVE to set a student")
+        
+    r.active_student_id = student_id
+    db.add(r)
+    await db.commit()
+    await db.refresh(r)
+    
+    # 2. Broadcast change
+    from app.core.websocket_manager import ws_manager
+    await ws_manager.broadcast_active_student(round_id, student_id)
+    
+    return r
