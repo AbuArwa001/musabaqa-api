@@ -1,29 +1,23 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+import re
 
-from app.api.deps import get_db, require_role, get_current_actor
-from app.models.student import Student
-from app.models.admin_user import AdminRole
-from app.models.results import RoundResult
-from app.schemas.results import RoundResultRead
+with open("app/api/v1/routes/results.py", "r") as f:
+    content = f.read()
 
-router = APIRouter(prefix="/results", tags=["Results"])
+# Replace the dependency
+content = content.replace("from app.api.deps import get_db, require_role",
+                          "from app.api.deps import get_db, require_role, get_current_actor\nfrom app.models.student import Student")
 
-
-@router.get("/rounds/{round_id}", response_model=list[RoundResultRead])
-async def get_round_results(
-    round_id: int,
+old_func = """@router.get("/students/{student_id}", response_model=list[RoundResultRead])
+async def get_student_results(
+    student_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR, AdminRole.JUDGE)),
+    _=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
 ):
     return (await db.execute(
-        select(RoundResult).where(RoundResult.round_id == round_id)
-        .order_by(RoundResult.rank.asc().nulls_last())
-    )).scalars().all()
+        select(RoundResult).where(RoundResult.student_id == student_id)
+    )).scalars().all()"""
 
-
-@router.get("/students/{student_id}", response_model=list[RoundResultRead])
+new_func = """@router.get("/students/{student_id}", response_model=list[RoundResultRead])
 async def get_student_results(
     student_id: int,
     db: AsyncSession = Depends(get_db),
@@ -43,4 +37,9 @@ async def get_student_results(
             
     return (await db.execute(
         select(RoundResult).where(RoundResult.student_id == student_id)
-    )).scalars().all()
+    )).scalars().all()"""
+
+content = content.replace(old_func, new_func)
+
+with open("app/api/v1/routes/results.py", "w") as f:
+    f.write(content)
