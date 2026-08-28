@@ -27,10 +27,40 @@ def _with_presigned_inst(inst) -> dict:
     return d
 
 
+from app.models.region import Region
+from app.models.county import County
+
+
 @router.post("/register", response_model=InstitutionRead, status_code=201)
 async def register_institution(data: InstitutionCreate, db: AsyncSession = Depends(get_db)):
     inst = await crud.create_institution(db, data)
     await db.commit()
+
+    # Look up location names for premium email receipt
+    region_name = None
+    county_name = None
+    try:
+        if inst.region_id:
+            reg = await db.get(Region, inst.region_id)
+            if reg:
+                region_name = reg.name_ar if inst.preferred_language == "AR" else reg.name_en
+        if inst.county_id:
+            cty = await db.get(County, inst.county_id)
+            if cty:
+                county_name = cty.name
+    except Exception:
+        pass
+
+    # Dispatch ultra-premium review email via Resend
+    try:
+        await notifications.send_institution_registration_review_email(
+            inst,
+            region_name=region_name,
+            county_name=county_name,
+        )
+    except Exception as exc:
+        pass
+
     return _with_presigned_inst(inst)
 
 

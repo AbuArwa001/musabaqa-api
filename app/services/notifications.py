@@ -405,6 +405,206 @@ async def notify_student_rejected(student, institution) -> None:
         await _send_resend_email(recipient, subject, body_text, html_body)
 
 
+async def send_institution_registration_review_email(
+    institution,
+    region_name: str | None = None,
+    county_name: str | None = None,
+) -> bool:
+    """
+    Sends an ultra-premium registration review & accreditation receipt email to the institution
+    via Resend upon initial account creation.
+    """
+    is_ar = institution.preferred_language == "AR" or getattr(institution, "preferred_language", None) == PreferredLanguage.AR
+    inst_name = institution.name or "Honorable Madrasa / Institution"
+    contact_person = institution.contact_person or "Administrator"
+    ref_id = f"REF-INST-{institution.id:04d}" if institution.id else "REF-INST-PENDING"
+    inst_type = getattr(institution, "type", "MADRASA")
+    type_str = str(inst_type).replace("InstitutionType.", "").title()
+    login_url = "http://localhost:3000/ar/login" if is_ar else "http://localhost:3000/en/login"
+    location_str = f"{region_name or 'Nairobi'} ({county_name or 'Kenya'})"
+
+    if is_ar:
+        subject = f"تأكيد تسجيل المؤسسة وملف الاعتماد ({ref_id}) | مسابقة مسجد جامع نيروبي"
+        content = f"""
+          <div style="text-align: center; margin-bottom: 24px;">
+            <p style="font-family: 'Traditional Arabic', 'Scheherazade', 'Amiri', Tahoma, serif; font-size: 20px; font-weight: bold; color: #006838; margin: 0 0 8px 0; letter-spacing: 0.05em;">
+              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+            </p>
+            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">
+              السلام عليكم ورحمة الله وبركاته
+            </h2>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
+              تحية طيبة مباركة من لجنة مسابقة القرآن الكريم — مسجد جامع نيروبي
+            </p>
+          </div>
+
+          <p style="font-size: 14.5px; color: #334155; line-height: 1.7; margin-bottom: 20px;">
+            يسرنا إبلاغكم بأنه تم استلام طلب تسجيل مؤسستكم <strong>«{inst_name}»</strong> بنجاح في البوابة الرسمية لمسابقة حفظ القرآن الكريم السنوية لعام ٢٠٢٦.
+            طلبكم قيد المراجعة والتدقيق حالياً لدى اللجنة المنظمة للاعتماد الرسمي.
+          </p>
+
+          <!-- Institution Details Card -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
+              <span style="font-size: 12px; font-weight: 800; color: #006838; text-transform: uppercase; letter-spacing: 0.05em;">
+                بيانات التسجيل الرسمية
+              </span>
+              <span style="font-family: monospace; font-size: 11.5px; font-weight: 800; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px;">
+                {ref_id}
+              </span>
+            </div>
+
+            <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 13px; color: #334155; text-align: right;">
+              <tr>
+                <td style="color: #64748b; width: 35%; font-weight: 600;">اسم المؤسسة:</td>
+                <td style="font-weight: 700; color: #0f172a;">{inst_name}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">نوع المؤسسة:</td>
+                <td>{type_str}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">المسؤول / الأستاذ المشرف:</td>
+                <td>{contact_person} ({institution.phone})</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">البريد الإلكتروني:</td>
+                <td style="font-family: monospace; color: #006838;">{institution.email}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">المنطقة / المقاطعة:</td>
+                <td>{location_str}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Status Roadmap -->
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px 20px; margin: 24px 0;">
+            <p style="font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 10px 0;">
+              خطة المراجعة والاعتماد:
+            </p>
+            <ul style="margin: 0; padding-right: 20px; font-size: 13px; color: #15803d; line-height: 1.8;">
+              <li><strong>تم الاستلام:</strong> إنشاء الحساب وملف المؤسسة (مكتمل ✓)</li>
+              <li><strong>قيد المراجعة:</strong> مراجعة مستندات وصور المدرسة من قبل اللجنة (جارٍ ⏳)</li>
+              <li><strong>الخطوة التالية:</strong> تسجيل حتى 4 طلاب من حفظة القرآن وإصدار بطاقات المشاركة</li>
+            </ul>
+          </div>
+
+          <!-- CTA Button -->
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="{login_url}" style="background: linear-gradient(135deg, #006838 0%, #004d29 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; font-size: 14px; font-weight: bold; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0, 104, 56, 0.25); border: 1px solid #004d29;">
+              الدخول إلى بوابة المؤسسة وإدارة الطلاب &larr;
+            </a>
+          </div>
+
+          <p style="font-size: 12.5px; color: #64748b; line-height: 1.6; margin-top: 24px;">
+            * ملاحظة: يمكنك الدخول في أي وقت لرفع صور إضافية للمعلم والفصول أو فيديو تعريفي لتسريع عملية الاعتماد.
+          </p>
+
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px; text-align: center;">
+            <p style="font-size: 14px; font-weight: 700; color: #006838; margin: 0 0 4px 0;">
+              وفقكم الله وسدد خطاكم في خدمة كتاب الله الكريم
+            </p>
+            <p style="font-size: 12px; color: #94a3b8; margin: 0;">
+              لجنة مسابقة القرآن الكريم &bull; مسجد جامع نيروبي
+            </p>
+          </div>
+        """
+        body_text = f"""بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ\nالسلام عليكم ورحمة الله وبركاته،\n\nتم استلام طلب تسجيل مؤسستكم ({inst_name}) في مسابقة مسجد جامع نيروبي بنجاح.\nرقم المرجع: {ref_id}\n\nيمكنكم تسجيل الدخول ومتابعة ملف الاعتماد عبر: {login_url}\n\nلجنة مسابقة القرآن الكريم - مسجد جامع نيروبي"""
+
+    else:
+        subject = f"Registration Received & Under Review ({ref_id}) | Jamia Mosque Musabaqa 2026"
+        content = f"""
+          <div style="text-align: center; margin-bottom: 24px;">
+            <p style="font-family: 'Traditional Arabic', 'Scheherazade', 'Amiri', Tahoma, serif; font-size: 18px; font-weight: bold; color: #c99335; margin: 0 0 6px 0;">
+              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+            </p>
+            <h2 style="font-size: 19px; font-weight: 800; color: #0f172a; margin: 0;">
+              Assalamu Alaikum wa Rahmatullahi wa Barakatuh
+            </h2>
+            <p style="font-size: 13px; color: #64748b; margin-top: 4px;">
+              Official Notification from Jamia Mosque Quran Competition Secretariat
+            </p>
+          </div>
+
+          <p style="font-size: 14.5px; color: #334155; line-height: 1.7; margin-bottom: 20px;">
+            We are pleased to confirm that the registration entry for <strong>{inst_name}</strong> has been successfully received and submitted for accreditation screening for the <strong>Jamia Mosque Annual Quran Memorization Competition 2026</strong>.
+          </p>
+
+          <!-- Institution Details Card -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
+              <span style="font-size: 11.5px; font-weight: 800; color: #006838; text-transform: uppercase; letter-spacing: 0.08em;">
+                OFFICIAL REGISTRATION DOSSIER
+              </span>
+              <span style="font-family: monospace; font-size: 11.5px; font-weight: 800; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px;">
+                {ref_id}
+              </span>
+            </div>
+
+            <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 13px; color: #334155;">
+              <tr>
+                <td style="color: #64748b; width: 35%; font-weight: 600;">Institution Name:</td>
+                <td style="font-weight: 700; color: #0f172a;">{inst_name}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">Institution Type:</td>
+                <td>{type_str}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">Head Ustadh / Contact:</td>
+                <td>{contact_person} ({institution.phone})</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">Official Email:</td>
+                <td style="font-family: monospace; color: #006838;">{institution.email}</td>
+              </tr>
+              <tr>
+                <td style="color: #64748b; font-weight: 600;">Registered Location:</td>
+                <td>{location_str}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Status Roadmap -->
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px 20px; margin: 24px 0;">
+            <p style="font-size: 13px; font-weight: 800; color: #166534; margin: 0 0 10px 0;">
+              Accreditation & Review Roadmap:
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #15803d; line-height: 1.8;">
+              <li><strong>Step 1: Account Created & Dossier Logged</strong> (Completed ✓)</li>
+              <li><strong>Step 2: Committee Verification & Quota Allocation</strong> (Under Review ⏳)</li>
+              <li><strong>Step 3: Register up to 4 Student Contestants</strong> (1 candidate per category)</li>
+            </ul>
+          </div>
+
+          <!-- Action Guidance -->
+          <p style="font-size: 13.5px; color: #475569; line-height: 1.6;">
+            While your accreditation review is underway, you may log in to your institutional portal to manage your profile, upload supporting madrasa/teacher media, and prepare your student candidates.
+          </p>
+
+          <!-- Primary CTA Button -->
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="{login_url}" style="background: linear-gradient(135deg, #006838 0%, #004d29 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; font-size: 14px; font-weight: bold; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0, 104, 56, 0.25); border: 1px solid #004d29;">
+              Access Institution Portal &rarr;
+            </a>
+          </div>
+
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 18px; margin-top: 28px; text-align: center;">
+            <p style="font-size: 13.5px; font-weight: 700; color: #006838; margin: 0 0 4px 0;">
+              May Allah ﷻ bless your madrasa and student efforts.
+            </p>
+            <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
+              Jamia Mosque Committee &bull; Musabaqa Organizing Secretariat &bull; Kigali Road, Nairobi
+            </p>
+          </div>
+        """
+        body_text = f"""Assalamu Alaikum wa Rahmatullahi wa Barakatuh,\n\nWe have received the registration entry for {inst_name} ({ref_id}) for the Jamia Mosque Quran Memorization Competition 2026.\n\nYour application is currently under review by the screening committee.\nYou can access your portal here: {login_url}\n\nJamia Mosque Committee Secretariat"""
+
+    html_body = _get_email_wrapper(subject, content, lang="AR" if is_ar else "EN")
+    return await _send_resend_email(institution.email, subject, body_text, html_body)
+
+
 async def notify_institution_approved(institution) -> None:
     content = f"""
       <p style="font-size: 16px; font-weight: 700; color: #006838; margin-top: 0;">Assalamu Alaikum,</p>
@@ -429,3 +629,4 @@ async def notify_institution_rejected(institution) -> None:
     body_text = f"Assalamu Alaikum,\nRegistration for {institution.name} was not approved. Reason: {institution.rejection_reason}\n\nJamia Mosque Committee"
     html_body = _get_email_wrapper(subject, content)
     await _send_resend_email(institution.email, subject, body_text, html_body)
+
