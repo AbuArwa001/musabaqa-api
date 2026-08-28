@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.api.deps import get_db, get_current_institution, require_role
+from app.api.deps import get_db, get_current_institution, require_role, get_current_actor
 from app.crud import students as crud
 from app.models.admin_user import AdminRole
 from app.models.student import Student, StudentReviewStatus
@@ -177,8 +177,13 @@ async def update_student(
     student_id: int,
     data: StudentUpdate,
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
+    actor_type, user_or_inst = actor
+    student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
+
     s = await crud.update_student(db, student_id, data)
     await db.commit()
     return _with_presigned(s)
@@ -191,9 +196,12 @@ async def update_student(
 async def get_student_photo_url(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
+    actor_type, user_or_inst = actor
     student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
     url = generate_presigned_url(student.photo) if student.photo else None
     return {"url": url}
 
@@ -203,9 +211,12 @@ async def get_student_photo_url(
 async def get_student_doc_url(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
+    actor_type, user_or_inst = actor
     student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
     url = generate_presigned_url(student.id_document) if student.id_document else None
     return {"url": url}
 
@@ -215,10 +226,14 @@ async def upload_student_photo(
     student_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
     """Uploads candidate passport photo to S3 and updates student.photo."""
+    actor_type, user_or_inst = actor
     student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
+
     contents = await file.read()
     s3_key = passport_photo_upload_key(student.full_name, student.national_id, file.filename or "photo.jpg")
     
@@ -236,10 +251,14 @@ async def upload_student_id_document(
     student_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
     """Uploads candidate identification document (PDF/Image) to S3."""
+    actor_type, user_or_inst = actor
     student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
+
     contents = await file.read()
     s3_key = id_document_upload_key(student.full_name, student.national_id, file.filename or "doc.pdf")
     

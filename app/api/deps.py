@@ -87,3 +87,44 @@ def require_role(*roles: AdminRole):
             )
         return user
     return _check
+
+
+from fastapi import Request
+
+async def get_current_actor(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> tuple[str, AdminUser | Institution]:
+    """
+    Returns ('staff', AdminUser) or ('institution', Institution).
+    Validates JWT token from the Authorization header.
+    """
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid Authorization header",
+        )
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = decode_token(token)
+        scope = payload.get("scope")
+        sub = int(payload.get("sub"))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    if scope == "staff":
+        user = await db.get(AdminUser, sub)
+        if not user or not user.active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Staff inactive or not found")
+        return "staff", user
+    elif scope == "institution":
+        inst = await db.get(Institution, sub)
+        if not inst:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Institution not found")
+        return "institution", inst
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token scope")
+
