@@ -59,6 +59,14 @@ async def submit_deduction_event(
     if await all_judges_submitted(db, data.round_id, data.student_id):
         await finalize_and_broadcast(db, data.round_id, data.student_id)
 
+    # Always broadcast a real-time update to moderators/admins
+    from app.core.websocket_manager import ws_manager
+    await ws_manager.broadcast_admin({
+        "type": "SCORE_UPDATED",
+        "round_id": data.round_id,
+        "student_id": data.student_id,
+    })
+
     await db.commit()
     return event
 

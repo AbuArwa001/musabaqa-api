@@ -128,10 +128,18 @@ async def get_judge_score_summary(
     for e in events:
         criterion_deductions[e.deduction_type_id] += e.amount
 
-    # Fetch criteria maxes
+    # Fetch student category to get category_group
+    from app.models.student import Student
+    from app.models.category import Category
+    student = await db.get(Student, student_id)
+    category = await db.get(Category, student.category_id)
+
+    # Fetch criteria maxes for the student's category group
     criteria_result = await db.execute(
         select(ScoringCriteria, DeductionType).join(
             DeductionType, DeductionType.scoring_criteria_id == ScoringCriteria.id
+        ).where(
+            ScoringCriteria.category_group == category.category_group
         )
     )
     # Group by criterion
@@ -152,8 +160,12 @@ async def get_judge_score_summary(
         per_criterion[name_en] = score
         total += score
 
+    from app.models.admin_user import AdminUser, AdminRole
+    user = await db.get(AdminUser, requesting_judge_id)
+    is_moderator = user and user.role in (AdminRole.SUPERADMIN, AdminRole.MODERATOR)
+
     panel_score = None
-    if all_submitted:
+    if all_submitted or is_moderator:
         # Compute panel average from all judges
         all_judge_ids = await get_all_assigned_judge_ids(db, round_id)
         judge_totals = []
@@ -171,6 +183,10 @@ async def get_judge_score_summary(
                 j_total += max(0.0, max_pts - deducted)
             judge_totals.append(j_total)
         panel_score = sum(judge_totals) / len(judge_totals) if judge_totals else None
+        
+        if is_moderator and panel_score is not None:
+            # Overwrite the requesting judge's personal score (which is empty) with the live panel average
+            total = panel_score
 
     return JudgeScoreSummary(
         student_id=student_id,
