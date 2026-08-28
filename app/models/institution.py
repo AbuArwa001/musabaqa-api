@@ -44,6 +44,7 @@ class Institution(SQLModel, table=True):
         sa_column=Column(sa.Enum(InstitutionStatus), nullable=False),
     )
     rejection_reason: str | None = Field(default=None)
+    document_url: str | None = Field(default=None)
     preferred_language: PreferredLanguage = Field(
         default=PreferredLanguage.EN,
         sa_column=Column(sa.Enum(PreferredLanguage), nullable=False),

@@ -12,6 +12,7 @@ class InstitutionCreate(BaseModel):
     password: str
     region_id: int | None = None
     county_id: int | None = None
+    document_url: str | None = None
     preferred_language: PreferredLanguage = PreferredLanguage.EN
 
 
@@ -24,6 +25,7 @@ class InstitutionRead(BaseModel):
     email: str
     region_id: int | None
     county_id: int | None
+    document_url: str | None = None
     status: InstitutionStatus
     rejection_reason: str | None
     preferred_language: PreferredLanguage
@@ -35,6 +37,7 @@ class InstitutionUpdate(BaseModel):
     name: str | None = None
     contact_person: str | None = None
     phone: str | None = None
+    document_url: str | None = None
     preferred_language: PreferredLanguage | None = None
 
 

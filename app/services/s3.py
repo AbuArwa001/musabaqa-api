@@ -65,6 +65,20 @@ def id_document_upload_key(full_name: str, national_id: str | None, filename: st
     return f"{folder}/id/{safe_name}{ext}"
 
 
+def institution_document_upload_key(institution_name: str, filename: str) -> str:
+    """
+    Returns: institutions/<clean_institution_name>/<safe_filename>.<ext>
+    Matches: institutions/institution_name/[file][.jpg/.pdf/.png]
+    """
+    ext = os.path.splitext(filename)[1].lower() or ".pdf"
+    clean_inst = re.sub(r"[^\w\-]", "_", (institution_name or "Unknown").strip(), flags=re.UNICODE)
+    clean_inst = re.sub(r"_+", "_", clean_inst).strip("_") or "institution"
+    orig_base = os.path.splitext(os.path.basename(filename))[0]
+    safe_name = re.sub(r"[^\w\-.]", "_", orig_base)
+    safe_name = re.sub(r"_+", "_", safe_name).strip("_") or "doc"
+    return f"institutions/{clean_inst}/{safe_name}{ext}"
+
+
 def upload_bytes(key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
     """Upload raw bytes to S3, return the key."""
     if not settings.AWS_ACCESS_KEY_ID or not settings.S3_BUCKET:
