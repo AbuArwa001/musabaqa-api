@@ -78,15 +78,18 @@ async def list_students(
     limit: int = 100,
     sort: str = Query(default="created_at:asc", description="Up to 3 tiers: field:dir,field:dir"),
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR, AdminRole.JUDGE)),
+    actor=Depends(get_current_actor),
 ):
+    actor_type, user_or_inst = actor
+    effective_institution_id = user_or_inst.id if actor_type == "institution" else institution_id
+
     sort_tiers = []
     for tier in sort.split(",")[:3]:
         parts = tier.strip().split(":")
         if len(parts) == 2:
             sort_tiers.append((parts[0], parts[1]))
     students = await crud.list_students(
-        db, institution_id=institution_id, category_id=category_id,
+        db, institution_id=effective_institution_id, category_id=category_id,
         review_status=review_status, regret_sent=regret_sent,
         is_deleted=is_deleted, skip=skip, limit=limit, sort_tiers=sort_tiers,
     )
@@ -128,7 +131,7 @@ async def export_analysis(
 async def check_duplicate(
     data: dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
     """Checks if national ID, birth certificate, phone, or name already exists."""
     national_id = str(data.get("national_id") or "").strip()
@@ -167,9 +170,13 @@ async def check_duplicate(
 async def get_student(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    staff=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    actor=Depends(get_current_actor),
 ):
-    return _with_presigned(await crud.get_student(db, student_id))
+    actor_type, user_or_inst = actor
+    student = await crud.get_student(db, student_id)
+    if actor_type == "institution" and student.institution_id != user_or_inst.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden to this candidate record")
+    return _with_presigned(student)
 
 
 @router.patch("/{student_id}", response_model=StudentRead)

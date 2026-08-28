@@ -81,11 +81,15 @@ def institution_document_upload_key(institution_name: str, filename: str, media_
     return f"institutions/{clean_inst}/{safe_name}{ext}"
 
 
+from fastapi import HTTPException, status
+
 def upload_bytes(key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
-    """Upload raw bytes to S3, return the key."""
+    """Upload raw bytes to S3, return the key. Raises informative HTTPException on failure."""
     if not settings.AWS_ACCESS_KEY_ID or not settings.S3_BUCKET:
-        logger.warning("AWS not configured — storing key reference for %s", key)
-        return key
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AWS S3 credentials or S3_BUCKET are not configured on the server.",
+        )
     try:
         s3 = get_s3_client()
         s3.put_object(
@@ -96,9 +100,20 @@ def upload_bytes(key: str, data: bytes, content_type: str = "application/octet-s
         )
         logger.info("Successfully uploaded object to S3: %s", key)
         return key
+    except ClientError as exc:
+        err_code = exc.response.get("Error", {}).get("Code", "ClientError")
+        err_msg = exc.response.get("Error", {}).get("Message", str(exc))
+        logger.error("AWS S3 ClientError (%s): %s", err_code, err_msg)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AWS S3 Upload Failed [{err_code}]: {err_msg}. Check AWS bucket '{settings.S3_BUCKET}' permissions.",
+        )
     except Exception as exc:
         logger.error("Failed to upload object to S3 (%s): %s", key, exc)
-        return key
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Storage upload error: {str(exc)}",
+        )
 
 
 def get_s3_object_bytes(s3_key: str) -> bytes | None:
