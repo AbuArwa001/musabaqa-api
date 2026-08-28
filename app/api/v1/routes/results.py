@@ -14,7 +14,7 @@ router = APIRouter(prefix="/results", tags=["Results"])
 async def get_round_results(
     round_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+    _=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR, AdminRole.JUDGE)),
 ):
     return (await db.execute(
         select(RoundResult).where(RoundResult.round_id == round_id)
