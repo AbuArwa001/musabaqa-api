@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Request, UploadFile, File, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_current_institution, require_role
@@ -19,10 +19,11 @@ router = APIRouter(prefix="/institutions", tags=["Institutions"])
 
 
 def _with_presigned_inst(inst) -> dict:
-    """Replace raw S3 key with presigned URL before returning to client."""
+    """Replace raw S3 keys with presigned URLs before returning to client."""
     d = inst.__dict__.copy()
-    if d.get("document_url"):
-        d["document_url"] = generate_presigned_url(d["document_url"])
+    for field in ["document_url", "teacher_photo_url", "classroom_photo_url", "students_photo_url", "video_url"]:
+        if d.get(field):
+            d[field] = generate_presigned_url(d[field])
     return d
 
 
@@ -85,7 +86,7 @@ async def upload_institution_document(
     """
     inst = await crud.get_institution(db, institution_id)
     contents = await file.read()
-    s3_key = institution_document_upload_key(inst.name, file.filename or "verification_doc.pdf")
+    s3_key = institution_document_upload_key(inst.name, file.filename or "verification_doc.pdf", media_type="document")
     upload_bytes(s3_key, contents, file.content_type or "application/pdf")
     inst.document_url = s3_key
     db.add(inst)
@@ -93,6 +94,45 @@ async def upload_institution_document(
 
     presigned = generate_presigned_url(s3_key)
     return {"s3_key": s3_key, "url": presigned}
+
+
+@router.post("/{institution_id}/media", status_code=200)
+async def upload_institution_media(
+    institution_id: int,
+    media_type: str = Query(..., description="Type of media: document, teacher, classroom, students, video"),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Uploads verification media (Teacher photo, Classroom photo, Students photo, Video) to AWS S3.
+    Saves as: institutions/<institution_name>/<media_type>_<filename>.[jpg/pdf/png/mp4]
+    """
+    valid_types = ["document", "teacher", "classroom", "students", "video"]
+    if media_type not in valid_types:
+        raise HTTPException(400, f"Invalid media_type. Must be one of: {', '.join(valid_types)}")
+
+    inst = await crud.get_institution(db, institution_id)
+    contents = await file.read()
+    s3_key = institution_document_upload_key(inst.name, file.filename or f"{media_type}.jpg", media_type=media_type)
+    content_type = file.content_type or ("video/mp4" if media_type == "video" else "image/jpeg")
+    upload_bytes(s3_key, contents, content_type)
+
+    if media_type == "document":
+        inst.document_url = s3_key
+    elif media_type == "teacher":
+        inst.teacher_photo_url = s3_key
+    elif media_type == "classroom":
+        inst.classroom_photo_url = s3_key
+    elif media_type == "students":
+        inst.students_photo_url = s3_key
+    elif media_type == "video":
+        inst.video_url = s3_key
+
+    db.add(inst)
+    await db.commit()
+
+    presigned = generate_presigned_url(s3_key)
+    return {"media_type": media_type, "s3_key": s3_key, "url": presigned}
 
 
 @router.get("/{institution_id}/document_url", status_code=200)

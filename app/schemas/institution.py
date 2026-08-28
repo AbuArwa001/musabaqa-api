@@ -13,6 +13,10 @@ class InstitutionCreate(BaseModel):
     region_id: int | None = None
     county_id: int | None = None
     document_url: str | None = None
+    teacher_photo_url: str | None = None
+    classroom_photo_url: str | None = None
+    students_photo_url: str | None = None
+    video_url: str | None = None
     preferred_language: PreferredLanguage = PreferredLanguage.EN
 
 
@@ -26,6 +30,10 @@ class InstitutionRead(BaseModel):
     region_id: int | None
     county_id: int | None
     document_url: str | None = None
+    teacher_photo_url: str | None = None
+    classroom_photo_url: str | None = None
+    students_photo_url: str | None = None
+    video_url: str | None = None
     status: InstitutionStatus
     rejection_reason: str | None
     preferred_language: PreferredLanguage
@@ -38,6 +46,10 @@ class InstitutionUpdate(BaseModel):
     contact_person: str | None = None
     phone: str | None = None
     document_url: str | None = None
+    teacher_photo_url: str | None = None
+    classroom_photo_url: str | None = None
+    students_photo_url: str | None = None
+    video_url: str | None = None
     preferred_language: PreferredLanguage | None = None
 
 

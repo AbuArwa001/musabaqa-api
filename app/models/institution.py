@@ -45,6 +45,10 @@ class Institution(SQLModel, table=True):
     )
     rejection_reason: str | None = Field(default=None)
     document_url: str | None = Field(default=None)
+    teacher_photo_url: str | None = Field(default=None)
+    classroom_photo_url: str | None = Field(default=None)
+    students_photo_url: str | None = Field(default=None)
+    video_url: str | None = Field(default=None)
     preferred_language: PreferredLanguage = Field(
         default=PreferredLanguage.EN,
         sa_column=Column(sa.Enum(PreferredLanguage), nullable=False),

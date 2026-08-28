@@ -65,17 +65,19 @@ def id_document_upload_key(full_name: str, national_id: str | None, filename: st
     return f"{folder}/id/{safe_name}{ext}"
 
 
-def institution_document_upload_key(institution_name: str, filename: str) -> str:
+def institution_document_upload_key(institution_name: str, filename: str, media_type: str = "doc") -> str:
     """
     Returns: institutions/<clean_institution_name>/<safe_filename>.<ext>
-    Matches: institutions/institution_name/[file][.jpg/.pdf/.png]
+    Matches: institutions/institution_name/[file][.jpg/.pdf/.png/.mp4]
     """
-    ext = os.path.splitext(filename)[1].lower() or ".pdf"
+    ext = os.path.splitext(filename)[1].lower() or (".mp4" if media_type == "video" else ".jpg")
     clean_inst = re.sub(r"[^\w\-]", "_", (institution_name or "Unknown").strip(), flags=re.UNICODE)
     clean_inst = re.sub(r"_+", "_", clean_inst).strip("_") or "institution"
     orig_base = os.path.splitext(os.path.basename(filename))[0]
     safe_name = re.sub(r"[^\w\-.]", "_", orig_base)
-    safe_name = re.sub(r"_+", "_", safe_name).strip("_") or "doc"
+    safe_name = re.sub(r"_+", "_", safe_name).strip("_") or media_type
+    if media_type and not safe_name.startswith(media_type):
+        safe_name = f"{media_type}_{safe_name}"
     return f"institutions/{clean_inst}/{safe_name}{ext}"
 
 
