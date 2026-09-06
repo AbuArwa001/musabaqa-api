@@ -1,0 +1,2 @@
+# Include musabaqa.db in FastAPI Cloud deployments even though it is in .gitignore
+!musabaqa.db

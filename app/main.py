@@ -4,12 +4,28 @@ musabaqa-api — Jamia Mosque Nairobi Quran Memorization Competition API
 All routes versioned under /api/v1/ from day one.
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import v1_router
 from app.ws.leaderboard import router as leaderboard_ws_router
 from app.ws.admin_live import router as admin_live_ws_router
+from app.core.database import create_db_and_tables, AsyncSessionLocal
+from app.core.seed import seed
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_db_and_tables()
+    try:
+        async with AsyncSessionLocal() as session:
+            await seed(session)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Startup seed failed or skipped: %s", exc)
+    yield
+
 
 app = FastAPI(
     title="Musabaqa API",
@@ -18,6 +34,7 @@ app = FastAPI(
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

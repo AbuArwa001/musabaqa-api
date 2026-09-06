@@ -12,7 +12,11 @@ import zipfile
 from pathlib import Path
 from datetime import datetime
 
-from weasyprint import HTML
+try:
+    from weasyprint import HTML
+except (ImportError, OSError):
+    HTML = None
+
 from pypdf import PdfWriter, PdfReader
 
 from app.services.s3 import get_s3_object_bytes
@@ -498,6 +502,14 @@ def generate_single_student_pdf(student, category=None, institution=None) -> byt
   </div>
 </body>
 </html>"""
+
+    if HTML is None:
+        logger.error(
+            "WeasyPrint is unavailable in this environment (missing system C-libraries: libgobject, pango, cairo)."
+        )
+        raise RuntimeError(
+            "WeasyPrint PDF generation is not available in this server environment (missing system C-libraries)."
+        )
 
     page1_bytes = HTML(string=html_string).write_pdf()
 

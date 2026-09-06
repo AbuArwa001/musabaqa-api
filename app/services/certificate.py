@@ -44,6 +44,9 @@ async def generate_certificate_pdf(
         )
         pdf_bytes = HTML(string=rendered).write_pdf()
         return pdf_bytes
+    except (ImportError, OSError) as exc:
+        logger.error("WeasyPrint is unavailable in this environment: %s", exc)
+        raise RuntimeError("Certificate PDF generation is not available in this server environment.") from exc
     except Exception as exc:
         logger.error("WeasyPrint certificate error: %s", exc)
         raise

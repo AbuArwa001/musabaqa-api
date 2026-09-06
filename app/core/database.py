@@ -21,7 +21,8 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def create_db_and_tables() -> None:
-    """Create all tables (used in tests; production uses Alembic)."""
+    """Create all tables (used in tests and startup)."""
+    import app.models  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
