@@ -15,6 +15,7 @@ from app.models.admin_user import AdminUser
 from app.models.audit import AuditLog, RegretEmailLog
 
 from app.models.competition import Competition, CompetitionStatus, HostOrganization
+from app.models.otp import InstitutionOTP, OTPChannel
 
 __all__ = [
     "County", "Region", "Institution", "Category", "ScoringCriteria", "DeductionType",
@@ -22,4 +23,5 @@ __all__ = [
     "RoundResult", "TieBreakVote", "CompetitionSeasonSettings", "RegionOverride",
     "AdminUser", "AuditLog", "RegretEmailLog",
     "Competition", "CompetitionStatus", "HostOrganization",
+    "InstitutionOTP", "OTPChannel",
 ]

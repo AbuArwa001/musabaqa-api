@@ -59,3 +59,31 @@ class InstitutionApprove(BaseModel):
 
 class InstitutionReject(BaseModel):
     rejection_reason: str
+
+
+class InstitutionDirectoryItem(BaseModel):
+    id: int
+    name: str
+    type: InstitutionType
+    contact_person: str
+    region_id: int | None = None
+    county_id: int | None = None
+    status: InstitutionStatus
+    obscured_phone: str
+    obscured_email: str
+    active_students_count: int
+    available_spots: int
+    model_config = {"from_attributes": True}
+
+
+class InstitutionAdminIntakeCreate(BaseModel):
+    name: str
+    contact_person: str
+    phone: str
+    email: EmailStr
+    county_id: int | None = None
+    region_id: int | None = None
+    type: InstitutionType = InstitutionType.MADRASA
+    preferred_language: PreferredLanguage = PreferredLanguage.EN
+    pre_allocated_students: int = 4
+

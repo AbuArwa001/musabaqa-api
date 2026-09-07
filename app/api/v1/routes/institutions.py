@@ -1,21 +1,113 @@
+import secrets
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select, func
 
 from app.api.deps import get_db, get_current_institution, require_role
 from app.crud import institutions as crud
 from app.models.admin_user import AdminRole
-from app.models.institution import InstitutionStatus
+from app.models.institution import Institution, InstitutionStatus, InstitutionType
+from app.models.student import Student
 from app.schemas.institution import (
     InstitutionCreate, InstitutionRead, InstitutionUpdate,
     InstitutionApprove, InstitutionReject,
+    InstitutionDirectoryItem, InstitutionAdminIntakeCreate,
 )
 from app.services import notifications
 from app.services.s3 import (
     generate_presigned_url, upload_bytes, institution_document_upload_key
 )
+from app.core.security import obscure_phone, obscure_email, hash_password
 from app.models.audit import AuditLog, AuditAction
 
 router = APIRouter(prefix="/institutions", tags=["Institutions"])
+
+
+@router.get("/directory", response_model=list[InstitutionDirectoryItem])
+async def list_institution_directory(
+    county_id: int | None = None,
+    region_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Public directory of pre-listed and approved institutions for Option 2 (Express Intake)
+    and Option 3 (Fast-track Portal Login). Contact details are partially masked for privacy.
+    """
+    query = select(Institution).where(Institution.status != InstitutionStatus.REJECTED)
+    if county_id:
+        query = query.where(Institution.county_id == county_id)
+    if region_id:
+        query = query.where(Institution.region_id == region_id)
+    query = query.order_by(Institution.name.asc())
+
+    institutions = (await db.execute(query)).scalars().all()
+
+    # Pre-fetch student counts
+    inst_ids = [i.id for i in institutions]
+    counts_map = {}
+    if inst_ids:
+        counts_query = (
+            select(Student.institution_id, func.count(Student.id))
+            .where(Student.institution_id.in_(inst_ids), Student.is_deleted == False)
+            .group_by(Student.institution_id)
+        )
+        counts_res = await db.execute(counts_query)
+        counts_map = {row[0]: row[1] for row in counts_res.all()}
+
+    items = []
+    for inst in institutions:
+        active_count = counts_map.get(inst.id, 0)
+        items.append(
+            InstitutionDirectoryItem(
+                id=inst.id,
+                name=inst.name,
+                type=inst.type,
+                contact_person=inst.contact_person,
+                region_id=inst.region_id,
+                county_id=inst.county_id,
+                status=inst.status,
+                obscured_phone=obscure_phone(inst.phone),
+                obscured_email=obscure_email(inst.email),
+                active_students_count=active_count,
+                available_spots=max(0, 4 - active_count),
+            )
+        )
+    return items
+
+
+@router.post("/admin-intake", response_model=InstitutionRead, status_code=201)
+async def admin_intake_institution(
+    data: InstitutionAdminIntakeCreate,
+    db: AsyncSession = Depends(get_db),
+    admin_user=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+):
+    """
+    Allows desk officers to quickly input institutions from the 50-Madaris Intake Roster.
+    Automatically creates the institution with status APPROVED and generates initial security credentials.
+    """
+    existing = await crud.get_institution_by_email(db, str(data.email))
+    if existing:
+        raise HTTPException(status_code=409, detail="An institution with this email is already registered.")
+
+    temp_password = secrets.token_urlsafe(12)
+    new_inst = Institution(
+        name=data.name.strip(),
+        type=data.type,
+        contact_person=data.contact_person.strip(),
+        phone=data.phone.strip(),
+        email=str(data.email).strip().lower(),
+        password_hash=hash_password(temp_password),
+        county_id=data.county_id,
+        region_id=data.region_id,
+        preferred_language=data.preferred_language,
+        status=InstitutionStatus.APPROVED,
+    )
+    db.add(new_inst)
+    await db.commit()
+    await db.refresh(new_inst)
+
+    return _with_presigned_inst(new_inst)
+
 
 
 def _with_presigned_inst(inst) -> dict:

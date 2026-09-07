@@ -79,3 +79,39 @@ def create_staff_token(
 def decode_token(token: str) -> dict[str, Any]:
     """Decode and verify a JWT. Raises JWTError on invalid/expired."""
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+
+def obscure_phone(phone: str) -> str:
+    """Masks phone number for secure preview: e.g. +254711000001 -> +25471 ••• •01."""
+    if not phone:
+        return "••••"
+    cleaned = "".join(ch for ch in phone if ch.isdigit() or ch == "+")
+    if len(cleaned) <= 4:
+        return "••••"
+    prefix = cleaned[:6] if cleaned.startswith("+254") else (cleaned[:4] if cleaned.startswith("07") or cleaned.startswith("01") else cleaned[:2])
+    suffix = cleaned[-2:]
+    return f"{prefix} ••• •{suffix}"
+
+
+def obscure_email(email: str) -> str:
+    """Masks email address for secure preview: e.g. nuuralislam@example.com -> nuu••••••••@example.com."""
+    if not email or "@" not in email:
+        return "••••@••••"
+    name, domain = email.split("@", 1)
+    if len(name) <= 3:
+        masked_name = name[0] + "••"
+    else:
+        masked_name = name[:3] + "•" * max(len(name) - 3, 3)
+    return f"{masked_name}@{domain}"
+
+
+def normalize_ke_phone(phone: str) -> str:
+    """Extracts significant phone digits (handling +254 vs 07/01 prefixes in Kenya)."""
+    digits = "".join(c for c in phone if c.isdigit())
+    if digits.startswith("254") and len(digits) >= 12:
+        return digits[3:]
+    if (digits.startswith("07") or digits.startswith("01")) and len(digits) >= 10:
+        return digits[1:]
+    return digits[-9:] if len(digits) >= 9 else digits
+
+
