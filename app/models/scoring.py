@@ -25,5 +25,29 @@ class DeductionEvent(SQLModel, table=True):
     )
     note: str | None = Field(default=None)
 
+    # Question number (1, 2, 3, 4)
+    question_number: int = Field(default=1, index=True)
+
     # Consistency flag: set if this judge's total deviates >10 pts from panel avg
     consistency_flagged: bool = Field(default=False)
+
+
+class RoundQuestion(SQLModel, table=True):
+    """
+    Stores question metadata for a student in a round.
+    Tracks question number (1-4), envelope drawn, Surah name, and Ayah range.
+    """
+    __tablename__ = "round_questions"
+
+    id: int | None = Field(default=None, primary_key=True)
+    round_id: int = Field(foreign_key="rounds.id", index=True)
+    student_id: int = Field(foreign_key="students.id", index=True)
+    question_number: int = Field(default=1, index=True)
+    envelope_number: str | None = Field(default=None, description="e.g. 'Envelope #14'")
+    surah_name: str | None = Field(default=None, description="e.g. 'البقرة' or 'Al-Baqarah'")
+    ayah_from: int | None = Field(default=None)
+    ayah_to: int | None = Field(default=None)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(sa.DateTime(timezone=True), nullable=False),
+    )

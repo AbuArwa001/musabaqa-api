@@ -123,63 +123,47 @@ async def seed(db: AsyncSession) -> None:
     await db.flush()
 
     # -----------------------------------------------------------------------
-    # Scoring Criteria
-    # Rubric A (JUZ_10_15_20): Memorization 50, Tajweed 30, Saut 20
-    # Rubric B (JUZ_30):       Memorization 45, Tajweed 25, Tafsir 10, Saut 20
-    # ALL seeded as DEDUCTION_BASED
+    # Scoring Criteria — Official 2026 Kenya Quran Competition Rubric
+    # Memorization (الحفظ): 70 marks
+    # Tajweed & Performance (التجويد وحسن الصوت والأداء): 30 marks
+    # Total: 100 marks
     # -----------------------------------------------------------------------
-    # Rubric A
     crit_a_mem  = ScoringCriteria(category_group=CategoryGroup.JUZ_10_15_20,
                                    name_en="Memorization", name_ar="الحفظ",
-                                   max_points=50, scoring_method=ScoringMethod.DEDUCTION_BASED)
+                                   max_points=70.0, scoring_method=ScoringMethod.DEDUCTION_BASED)
     crit_a_taj  = ScoringCriteria(category_group=CategoryGroup.JUZ_10_15_20,
-                                   name_en="Tajweed", name_ar="التجويد",
-                                   max_points=30, scoring_method=ScoringMethod.DEDUCTION_BASED)
-    crit_a_saut = ScoringCriteria(category_group=CategoryGroup.JUZ_10_15_20,
-                                   name_en="Saut", name_ar="الصوت",
-                                   max_points=20, scoring_method=ScoringMethod.DEDUCTION_BASED)
-    # Rubric B
+                                   name_en="Tajweed", name_ar="التجويد وحسن الصوت والأداء",
+                                   max_points=30.0, scoring_method=ScoringMethod.DEDUCTION_BASED)
     crit_b_mem  = ScoringCriteria(category_group=CategoryGroup.JUZ_30,
                                    name_en="Memorization", name_ar="الحفظ",
-                                   max_points=45, scoring_method=ScoringMethod.DEDUCTION_BASED)
+                                   max_points=70.0, scoring_method=ScoringMethod.DEDUCTION_BASED)
     crit_b_taj  = ScoringCriteria(category_group=CategoryGroup.JUZ_30,
-                                   name_en="Tajweed", name_ar="التجويد",
-                                   max_points=25, scoring_method=ScoringMethod.DEDUCTION_BASED)
-    crit_b_taf  = ScoringCriteria(category_group=CategoryGroup.JUZ_30,
-                                   name_en="Tafsir", name_ar="التفسير",
-                                   max_points=10, scoring_method=ScoringMethod.DEDUCTION_BASED)
-    crit_b_saut = ScoringCriteria(category_group=CategoryGroup.JUZ_30,
-                                   name_en="Saut", name_ar="الصوت",
-                                   max_points=20, scoring_method=ScoringMethod.DEDUCTION_BASED)
-    db.add_all([crit_a_mem, crit_a_taj, crit_a_saut, crit_b_mem, crit_b_taj, crit_b_taf, crit_b_saut])
+                                   name_en="Tajweed", name_ar="التجويد وحسن الصوت والأداء",
+                                   max_points=30.0, scoring_method=ScoringMethod.DEDUCTION_BASED)
+    db.add_all([crit_a_mem, crit_a_taj, crit_b_mem, crit_b_taj])
     await db.flush()
 
     # -----------------------------------------------------------------------
-    # Deduction Types
-    # Fixed amounts: Memorization + Tajweed
-    # NULL amounts: Saut + Tafsir (judge-entered per event)
+    # Official Deduction Types
+    # Memorization:
+    #   - Tanbeeh (Warning/Hesitation): 1.0 mark
+    #   - Al-Fath (Prompting/Direct correction): 2.0 marks
+    #   - Al-Lahn (Vocalization/Grammar error): 2.0 marks
+    # Tajweed:
+    #   - Tajweed Error: 0.5 mark
     # -----------------------------------------------------------------------
     db.add_all([
-        # Rubric A — Memorization
-        DeductionType(scoring_criteria_id=crit_a_mem.id,  name_en="Normal Error",    name_ar="خطأ عادي",       points_deducted=1.0),
-        DeductionType(scoring_criteria_id=crit_a_mem.id,  name_en="Forgetfulness",   name_ar="نسيان",           points_deducted=2.0),
-        DeductionType(scoring_criteria_id=crit_a_mem.id,  name_en="Prompted Error",  name_ar="خطأ بتلقين",      points_deducted=0.5),
-        # Rubric A — Tajweed
-        DeductionType(scoring_criteria_id=crit_a_taj.id,  name_en="Tajweed Error",   name_ar="خطأ تجويدي",      points_deducted=0.5),
-        DeductionType(scoring_criteria_id=crit_a_taj.id,  name_en="Major Tajweed Error", name_ar="خطأ تجويدي كبير", points_deducted=1.0),
-        # Rubric A — Saut (judge-entered, NULL fixed amount)
-        DeductionType(scoring_criteria_id=crit_a_saut.id, name_en="Voice Deduction", name_ar="خصم صوت",         points_deducted=None),
-        # Rubric B — Memorization
-        DeductionType(scoring_criteria_id=crit_b_mem.id,  name_en="Normal Error",    name_ar="خطأ عادي",        points_deducted=1.0),
-        DeductionType(scoring_criteria_id=crit_b_mem.id,  name_en="Forgetfulness",   name_ar="نسيان",            points_deducted=2.0),
-        DeductionType(scoring_criteria_id=crit_b_mem.id,  name_en="Prompted Error",  name_ar="خطأ بتلقين",       points_deducted=0.5),
-        # Rubric B — Tajweed
-        DeductionType(scoring_criteria_id=crit_b_taj.id,  name_en="Tajweed Error",   name_ar="خطأ تجويدي",       points_deducted=0.5),
-        DeductionType(scoring_criteria_id=crit_b_taj.id,  name_en="Major Tajweed Error", name_ar="خطأ تجويدي كبير",  points_deducted=1.0),
-        # Rubric B — Tafsir (judge-entered, NULL fixed amount)
-        DeductionType(scoring_criteria_id=crit_b_taf.id,  name_en="Tafsir Deduction", name_ar="خصم تفسير",       points_deducted=None),
-        # Rubric B — Saut (judge-entered, NULL fixed amount)
-        DeductionType(scoring_criteria_id=crit_b_saut.id, name_en="Voice Deduction",  name_ar="خصم صوت",         points_deducted=None),
+        # CategoryGroup JUZ_10_15_20
+        DeductionType(scoring_criteria_id=crit_a_mem.id, name_en="Tanbeeh (Warning)", name_ar="التنبيه", points_deducted=1.0),
+        DeductionType(scoring_criteria_id=crit_a_mem.id, name_en="Al-Fath (Prompting)", name_ar="الفتح", points_deducted=2.0),
+        DeductionType(scoring_criteria_id=crit_a_mem.id, name_en="Al-Lahn (Vocalization Error)", name_ar="اللحن", points_deducted=2.0),
+        DeductionType(scoring_criteria_id=crit_a_taj.id, name_en="Tajweed Error", name_ar="خطأ في التجويد", points_deducted=0.5),
+
+        # CategoryGroup JUZ_30
+        DeductionType(scoring_criteria_id=crit_b_mem.id, name_en="Tanbeeh (Warning)", name_ar="التنبيه", points_deducted=1.0),
+        DeductionType(scoring_criteria_id=crit_b_mem.id, name_en="Al-Fath (Prompting)", name_ar="الفتح", points_deducted=2.0),
+        DeductionType(scoring_criteria_id=crit_b_mem.id, name_en="Al-Lahn (Vocalization Error)", name_ar="اللحن", points_deducted=2.0),
+        DeductionType(scoring_criteria_id=crit_b_taj.id, name_en="Tajweed Error", name_ar="خطأ في التجويد", points_deducted=0.5),
     ])
     await db.flush()
 

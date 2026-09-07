@@ -52,6 +52,8 @@ class CompetitionSeasonSettings(SQLModel, table=True):
         default=PanelScoreMethod.AVERAGE,
         sa_column=Column(sa.Enum(PanelScoreMethod), nullable=False),
     )
+    # Active scoring rubric: "OFFICIAL_70_30" (70 Hifdh / 30 Tajweed) or "TRADITIONAL_TIERED" (50/30/20 & 45/25/10/20)
+    rubric_mode: str = Field(default="OFFICIAL_70_30")
 
 
 class RegionOverride(SQLModel, table=True):
