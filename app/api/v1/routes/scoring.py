@@ -206,14 +206,16 @@ async def get_round_deduction_types(
         raise HTTPException(404, "Round not found")
         
     # 2. Get category to find category_group
+    from app.models.category import CategoryGroup
     category = await db.get(Category, round_.category_id)
+    cat_group = category.category_group if category else CategoryGroup.JUZ_10_15_20
     
     # 3. Fetch all deduction types for this category group
     results = await db.execute(
         select(DeductionType, ScoringCriteria).join(
             ScoringCriteria, DeductionType.scoring_criteria_id == ScoringCriteria.id
         ).where(
-            ScoringCriteria.category_group == category.category_group
+            ScoringCriteria.category_group == cat_group
         )
     )
     
@@ -252,7 +254,7 @@ async def set_active_rubric_mode(
     Synchronizes criteria and deduction types and broadcasts real-time change.
     """
     from app.services.rubric_manager import set_rubric_mode
-    staff, _ = staff_data
+    staff = staff_data
     mode = await set_rubric_mode(db, data.rubric_mode)
 
     db.add(AuditLog(

@@ -128,17 +128,21 @@ RUBRIC_CONFIGS = {
 
 async def get_current_rubric_mode(db: AsyncSession) -> str:
     """Returns the currently active rubric mode, defaulting to OFFICIAL_70_30."""
-    result = await db.execute(
-        select(CompetitionSeasonSettings).where(CompetitionSeasonSettings.is_active == True)
-    )
-    season = result.scalar_one_or_none()
-    if not season:
-        # Fallback to any season setting
-        result = await db.execute(select(CompetitionSeasonSettings).limit(1))
+    try:
+        result = await db.execute(
+            select(CompetitionSeasonSettings).where(CompetitionSeasonSettings.is_active == True)
+        )
         season = result.scalar_one_or_none()
-    
-    if season and getattr(season, "rubric_mode", None):
-        return season.rubric_mode
+        if not season:
+            # Fallback to any season setting
+            result = await db.execute(select(CompetitionSeasonSettings).limit(1))
+            season = result.scalar_one_or_none()
+        
+        if season and getattr(season, "rubric_mode", None):
+            return season.rubric_mode
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Could not query rubric_mode from season settings: %s", exc)
     return "OFFICIAL_70_30"
 
 
