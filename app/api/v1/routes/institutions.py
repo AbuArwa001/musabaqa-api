@@ -12,6 +12,7 @@ from app.schemas.institution import (
     InstitutionCreate, InstitutionRead, InstitutionUpdate,
     InstitutionApprove, InstitutionReject,
     InstitutionDirectoryItem, InstitutionAdminIntakeCreate,
+    InstitutionBatchIntakeRequest, InstitutionBatchIntakeResponse,
 )
 from app.services import notifications
 from app.services.s3 import (
@@ -107,6 +108,56 @@ async def admin_intake_institution(
     await db.refresh(new_inst)
 
     return _with_presigned_inst(new_inst)
+
+
+@router.post("/batch-intake", response_model=InstitutionBatchIntakeResponse, status_code=201)
+async def admin_batch_intake_institutions(
+    data: InstitutionBatchIntakeRequest,
+    db: AsyncSession = Depends(get_db),
+    admin_user=Depends(require_role(AdminRole.SUPERADMIN, AdminRole.MODERATOR)),
+):
+    """
+    Batch onboarding for institutions parsed from the 50-Madaris Intake Roster.
+    Imports multiple verified madaris simultaneously, creating approved credentials.
+    """
+    created = []
+    skipped = []
+
+    for item in data.institutions:
+        email_clean = str(item.email).strip().lower()
+        existing = await crud.get_institution_by_email(db, email_clean)
+        if existing:
+            skipped.append({
+                "name": item.name,
+                "email": email_clean,
+                "reason": "An institution with this email is already registered."
+            })
+            continue
+
+        temp_password = secrets.token_urlsafe(12)
+        new_inst = Institution(
+            name=item.name.strip(),
+            type=item.type,
+            contact_person=item.contact_person.strip(),
+            phone=item.phone.strip(),
+            email=email_clean,
+            password_hash=hash_password(temp_password),
+            county_id=item.county_id,
+            region_id=item.region_id,
+            preferred_language=item.preferred_language,
+            status=InstitutionStatus.APPROVED,
+        )
+        db.add(new_inst)
+        await db.flush()
+        await db.refresh(new_inst)
+        created.append(_with_presigned_inst(new_inst))
+
+    await db.commit()
+    return InstitutionBatchIntakeResponse(
+        created=created,
+        skipped=skipped,
+        total_created=len(created),
+    )
 
 
 

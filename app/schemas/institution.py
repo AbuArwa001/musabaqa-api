@@ -87,3 +87,13 @@ class InstitutionAdminIntakeCreate(BaseModel):
     preferred_language: PreferredLanguage = PreferredLanguage.EN
     pre_allocated_students: int = 4
 
+
+class InstitutionBatchIntakeRequest(BaseModel):
+    institutions: list[InstitutionAdminIntakeCreate]
+
+
+class InstitutionBatchIntakeResponse(BaseModel):
+    created: list[InstitutionRead]
+    skipped: list[dict] = []
+    total_created: int
+
